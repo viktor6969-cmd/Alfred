@@ -1,5 +1,6 @@
 #!/bin/bash
 
+#----------------------Functions-------------------------#
 print_help(){
 
     if [[ -n "$1" ]]; then 
@@ -9,10 +10,20 @@ print_help(){
             -h/--help\t\t\t    : Help
             -s/--show -a/--apache -l/--logs : Show Apache logs
             \t\t\t     --stat : Show Apache status
-            -s/--show -p/--port  \t    : Listener (port 4445)
-            -b/--block \t\t\t    : Block the server entirly
+        \t\t-p/--port  \t    : Listener (port 4445)
+        \t\t-bL  \t\t    : List all the blocked users 
+        \t\t-bS  \t\t    : List tail of al lblocked users
+            --block\t\t\t    : Block the server entirly
             -u/--update \t\t    : Update && upgrade"
     exit 1
+}
+
+last_arg(){
+
+    if [[ -n $1 ]]; then
+        print_help "$1"
+    fi
+
 }
 
 apache(){
@@ -21,38 +32,56 @@ apache(){
             echo "Apache logs";;
 
         --status)
-            echo "Apache status";;
+            sudo fail2ban-client status sshd;;
         *) 
-
             print_help "$1";;
     esac
     exit 0
 }
 
+#Extracting variables from .env
+env_extract(){
+    if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+    else
+        echo ".env file not found!"
+        exit 1
+    fi
+}
+
+#--------------------Main code-------------------#
+
+env_extract
+
 if [[ $# -eq 0 ]]; then
     echo "Defoult mode" 
 fi
 
-
-
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
         -u|--update)
-            echo "sudo apt-get update && sudo apt-get upgrade";;
+            sudo apt-get update && sudo apt-get upgrade;;
         -h|--help)
             print_help;;
         -s|--show)
             shift 
             case "$1" in
                 -p|--port)
-                    echo "Printing  logs for port 4445"
-                    shift;;
+                #Print the port logs 
+                    last_arg
+                    /bin/tail -f $PORT_LOG_PATH;;
                 -c|--connections)
                     echo "Printing active connections"
                     shift;;
                 -a|--apache)
                     shift
                     apache "$@";;
+                -bL)
+                    last_arg
+                    /bin/cat $BANNED_LOG_PATH;;
+                -bS)
+                    last_arg
+                    /bin/tail -f $BANNED_LOG_PATH;;
                 *)
                     print_help "$1";;
             esac;;
@@ -61,5 +90,6 @@ while [[ "$#" -gt 0 ]]; do
     esac
     shift
 done
+exit 0
 
         
