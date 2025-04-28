@@ -42,6 +42,45 @@ apache(){
     exit 0
 }
 
+git(){
+    case "$1" in
+    --con)
+        if [ -f ~/.ssh/agent.env ]; then
+            source ~/.ssh/agent.env > /dev/null
+        fi
+
+        if ! ssh-add -l >/dev/null 2>&1; then
+            echo "[ ] No valid ssh-agent found, starting a new one..."
+            eval "$(ssh-agent -s)"
+            echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" > ~/.ssh/agent.env
+            echo "export SSH_AGENT_PID=$SSH_AGENT_PID" >> ~/.ssh/agent.env
+            ssh-add ~/.ssh/id_rsa
+        else
+            echo "[ ] Reusing existing ssh-agent."
+        fi
+
+        GIT_OUTPUT=$(ssh -T git@github.com 2>&1)
+        USERNAME=$(echo "$GIT_OUTPUT" | grep -oP '(?<=Hi ).*?(?=!)')
+
+        if [[ -n $USERNAME ]]; then
+            echo -e "[+] Connected to GitHub as: $USERNAME"
+        else
+            echo -e "[-] Couldn't connect to GitHub:\n$GIT_OUTPUT"
+        fi
+        exit 0;;
+
+    --dis)
+        pkill ssh-agent > /dev/null 2>&1
+        echo "[+] All ssh-agent processes have been killed."
+        exit 0;;
+
+    *)
+        print_help "$@";;
+esac
+
+
+}
+
 #Extracting variables from .env
 env_extract(){
     if [ -f .env ]; then
@@ -64,16 +103,7 @@ while [[ "$#" -gt 0 ]]; do
     case "$1" in
         --git)
             shift
-            if [[ "$1" = "--conn" ]]; then
-                eval "$(ssh-agent -s)"
-                ssh-add ~/.ssh/ssh_key_private
-                exit 0
-            fi
-            if [[ "$1" = "--dis" ]]; then 
-                pkill ssh-agent
-                exit 0
-            fi
-            print_help "$@";;
+            git $@;;
         -u|--update)
             sudo apt-get update && sudo apt-get upgrade;;
         -h|--help)
