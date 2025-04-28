@@ -9,12 +9,15 @@ print_help(){
     echo -e "Are you dumb? You created me, how can you forget the flags? Idiot.....\nUsage: $0 [options] \nOptions:
         -h/--help      : Help
         -al/--logs     : Show Apache logs
+        -u/--update    : Update && upgrade
         -aS/--stat     : Show Apache status
         -p/--port      : Listener (port 4445)
+        --BLOCK        : Block the server entirly
         -lA/--listALL  : List all the blocked users 
         -ll/--listLast : List tail of al blocked users
-        --BLOCK        : Block the server entirly
-        -u/--update    : Update && upgrade"
+        --git --con    : Connect to git via new ssh agent
+        --git --dis    : Kill all the ssh agents (exept the curent one)
+        -c/--connect   : Shows the curent established connections (ESTAB)"
     exit 1
 }
 
@@ -59,15 +62,15 @@ fi
 
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
-        -git)
+        --git)
             shift
-            if [[ "$1" = "conn" ]]; then
+            if [[ "$1" = "--conn" ]]; then
                 eval "$(ssh-agent -s)"
                 ssh-add ~/.ssh/ssh_key_private
                 exit 0
             fi
-            if [[ "$1" = "dis" ]]; then 
-                ssh-agent -k
+            if [[ "$1" = "--dis" ]]; then 
+                pkill ssh-agent
                 exit 0
             fi
             print_help "$@";;
@@ -78,7 +81,7 @@ while [[ "$#" -gt 0 ]]; do
         -p|--port)
             last_arg
             /bin/tail -f $PORT_LOG_PATH;;
-        -c|--connections)
+        -c|--connect)
             sudo ss -tunap | grep ESTAB
             shift;;
         -a|--apache)
@@ -88,7 +91,7 @@ while [[ "$#" -gt 0 ]]; do
             sudo fail2ban-client status sshd;;
         -lA|--listALL)
             last_arg
-            /bin/cat $BANNED_LOG_PATH;;
+            sudo /bin/cat $BANNED_LOG_PATH;;
         -ll|--listLst)
             last_arg
             sudo /bin/tail -f $BANNED_LOG_PATH;;
