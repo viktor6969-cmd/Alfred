@@ -7,14 +7,14 @@ print_help(){
         echo "DFuck is $1?"
     fi
     echo -e "Are you dumb? You created me, how can you forget the flags? Idiot.....\nUsage: $0 [options] \nOptions:
-            -h/--help\t\t\t    : Help
-            -s/--show -a/--apache -l/--logs : Show Apache logs
-            \t\t\t     --stat : Show Apache status
-        \t\t-p/--port  \t    : Listener (port 4445)
-        \t\t-bL  \t\t    : List all the blocked users 
-        \t\t-bS  \t\t    : List tail of al lblocked users
-            --block\t\t\t    : Block the server entirly
-            -u/--update \t\t    : Update && upgrade"
+        -h/--help      : Help
+        -al/--logs     : Show Apache logs
+        -aS/--stat     : Show Apache status
+        -p/--port      : Listener (port 4445)
+        -lA/--listALL  : List all the blocked users 
+        -ll/--listLast : List tail of al blocked users
+        --BLOCK        : Block the server entirly
+        -u/--update    : Update && upgrade"
     exit 1
 }
 
@@ -59,32 +59,42 @@ fi
 
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
+        -git)
+            shift
+            if [[ "$1" = "conn" ]]; then
+                eval "$(ssh-agent -s)"
+                ssh-add ~/.ssh/ssh_key_private
+                exit 0
+            fi
+            if [[ "$1" = "dis" ]]; then 
+                ssh-agent -k
+                exit 0
+            fi
+            print_help "$@";;
         -u|--update)
             sudo apt-get update && sudo apt-get upgrade;;
         -h|--help)
             print_help;;
-        -s|--show)
-            shift 
-            case "$1" in
-                -p|--port)
-                #Print the port logs 
-                    last_arg
-                    /bin/tail -f $PORT_LOG_PATH;;
-                -c|--connections)
-                    echo "Printing active connections"
-                    shift;;
-                -a|--apache)
-                    shift
-                    apache "$@";;
-                -bL)
-                    last_arg
-                    /bin/cat $BANNED_LOG_PATH;;
-                -bS)
-                    last_arg
-                    /bin/tail -f $BANNED_LOG_PATH;;
-                *)
-                    print_help "$1";;
-            esac;;
+        -p|--port)
+            last_arg
+            /bin/tail -f $PORT_LOG_PATH;;
+        -c|--connections)
+            sudo ss -tunap | grep ESTAB
+            shift;;
+        -a|--apache)
+            shift
+            apache "$@";;
+        -as|--stat)
+            sudo fail2ban-client status sshd;;
+        -lA|--listALL)
+            last_arg
+            /bin/cat $BANNED_LOG_PATH;;
+        -ll|--listLst)
+            last_arg
+            sudo /bin/tail -f $BANNED_LOG_PATH;;
+        --BLOCK)
+            last_arg
+            echo "Server is DOWN";;
         *)
             print_help "$@";;
     esac
