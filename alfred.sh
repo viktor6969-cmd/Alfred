@@ -1,9 +1,11 @@
 #!/bin/bash
 
 ERROR_MESSAGE="\e[31m[-]ERROR\e[0m"
-SUCSESS_MASSAGE="\e[32m[+]DONE\e[0m"
-INFO_MASSAGE="\e[33m[!]"
+SUCCESS_MESSAGE="\e[32m[+]DONE\e[0m"
+INFO_MESSAGE="\e[33m[!]"
 #----------------------Functions-------------------------#
+
+# Print help
 print_help(){
 
     if [[ -n "$1" ]]; then 
@@ -32,7 +34,7 @@ print_help(){
     exit 1
 }
 
-#Extracting variables from .env
+# Extracting variables from .env
 env_extract(){
 
     SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -44,15 +46,66 @@ env_extract(){
     fi
 }
 
+# Cheack for last argument
 last_arg(){
     if [[ "$1" != "${!#}" ]]; then
         print_help "$1"
     fi
 }
 
+# Backup function
+backup_function() {
+    if [[ -z "$1" ]]; then 
+        echo -e "$ERROR_MESSAGE Missing argument after --save !"
+        print_help
+    fi
+
+    TIMESTAMP=$(date +%Y-%m-%d_%H-%M)
+
+    if [[ "$1" == "-all" ]]; then 
+        for SERVICE in "${SERVICES_INCLUDED[@]}"; do
+            SRC_DIR="/etc/$SERVICE"
+            DEST_FILE="$BACKUP_FILES_PATH/${SERVICE}_$TIMESTAMP.bkp"
+            backup_save "$SRC_DIR" "$DEST_FILE" "$SERVICE"
+        done
+        exit 0
+    else 
+        while [[ "$#" -gt 0 ]]; do
+            found=0
+            for svc in "${SERVICES_INCLUDED[@]}"; do
+                if [[ "$svc" == "$1" ]]; then
+                    SRC_DIR="/etc/$svc"
+                    DEST_FILE="$BACKUP_FILES_PATH/${svc}_$TIMESTAMP.bkp"
+                    backup_save "$SRC_DIR" "$DEST_FILE" "$svc"
+                    found=1
+                    break
+                fi
+            done
+            if [[ $found -eq 0 ]]; then
+                echo -e "$ERROR_MESSAGE Unknown service: $1"
+            fi
+            shift
+        done
+    fi
+}
+
+backup_save() {
+    SRC_DIR="$1"
+    DEST_FILE="$2"
+    SERVICE="$3"
+
+    if [[ -d "$SRC_DIR" ]]; then
+        sudo tar -czf "$DEST_FILE.tar.gz" -C /etc "$SERVICE"
+        echo -e "$SUCCESS_MESSAGE Backed up $SERVICE to $DEST_FILE.tar.gz"
+    else
+        echo -e "$ERROR_MESSAGE: $SRC_DIR doesn't exist. Skipping."
+    fi
+}
+
+# IP validation
 is_valid_ip() {
     if [[ -n $1 ]]; then
-        echo -e "$ERROR_MASSAGE: You must enter the ip, use the -h option"
+        echo -e "$ERROR_MESSAGE: You must enter the ip, use the -h option"
     fi
 
     local ip="$1"
@@ -71,6 +124,7 @@ is_valid_ip() {
     done
 }
 
+# Find IP in fail2ban jail
 find_ip_jail(){
     if [[ $# -eq 0 ]]; then
         echo -e "$ERROR_MESSAGE:You must enter the ip too, use the -h option idiot...."  
@@ -80,17 +134,18 @@ find_ip_jail(){
     FOUND=0
     for jail in $(sudo fail2ban-client status | grep "Jail list" | cut -d ":" -f2 | tr ',' ' '); do
         if sudo fail2ban-client status "$jail" | grep -q "Banned IP list:.*$1"; then
-        echo -e "$SUCSESS_MASSAGE:The ip:$1 was banned by \"$jail\"";
+        echo -e "$SUCCESS_MESSAGE:The ip:$1 was banned by \"$jail\"";
         FOUND=1
         fi
     done
 
     if [ "$FOUND" -eq 0 ]; then
-        echo "$SUCSESS_MASSAGE:IP $1 is not blocked in any jail."
+        echo "$SUCCESS_MESSAGE:IP $1 is not blocked in any jail."
     fi 
     exit 0
 }
 
+# Shows blocked ip logs
 show_logs(){
     if [[ "$#" -eq 0 ]]; then
         sudo /bin/tail -f $REAL_TIME_LOGS_PATH
@@ -103,20 +158,21 @@ show_logs(){
         -i|--info)
             shift 
             is_valid_ip "$1"
-            sudo /bin/cat $BLOCKED_IP_INFO_PATH | grep "$1" || echo "$SUCSESS_MASSAGE:$1 wasnn't found in the blocked ip logs";;
+            sudo /bin/cat $BLOCKED_IP_INFO_PATH | grep "$1" || echo "$SUCCESS_MESSAGE:$1 wasnn't found in the blocked ip logs";;
         *)
         print_help "$@";;
     esac
     exit 0
 }
 
+# Open port
 open_port() {
     PORT=$1
     CLEANED_UP=0
 
     cleanup() {
         if [[ $CLEANED_UP -eq 0 ]]; then
-            echo -e "\n$INFO_MASSAGE Closing port $PORT..."
+            echo -e "\n$INFO_MESSAGE Closing port $PORT..."
             sudo ufw delete allow $PORT > /dev/null
             CLEANED_UP=1
             exit 0
@@ -125,17 +181,17 @@ open_port() {
 
     trap cleanup SIGINT SIGTERM
 
-    echo -e "$INFO_MASSAGE Temporarily opening port $PORT..."
+    echo -e "$INFO_MESSAGE Temporarily opening port $PORT..."
     sudo ufw allow $PORT > /dev/null
 
-    echo -e "$INFO_MASSAGE Starting listener on port $PORT. Press Ctrl+C to stop...\e[0m"
+    echo -e "$INFO_MESSAGE Starting listener on port $PORT. Press Ctrl+C to stop...\e[0m"
     nc -lvnp $PORT
 
     cleanup  # Will only run if not already cleaned
 }
 
-
-git(){
+# Git updates via ssh key
+git_aut(){
     case "$1" in
     --con)
         if [ -f ~/.ssh/agent.env ]; then
@@ -186,27 +242,32 @@ while [[ "$#" -gt 0 ]]; do
     case "$1" in
         -h|--help)
             print_help;;
+
         -up|--update)
             sudo apt-get update && sudo apt-get upgrade;;
+
         -f|--find)
             shift 
             find_ip_jail "$@";;
+
         -s|--show)
             shift
             show_logs "$@";;
+
         -b|--ban)
             shift
             if [[ $# -eq 2 ]]; then
                 sudo fail2ban-client set $1 ban $2 
             fi;;
+
         -aS|--apacheStat)
             last_arg "$@"
             sudo systemctl status  apache2;;
 
-        -jS/--jailStat)
+        -jS|--jailStat)
             shift 
             if [[ $# -eq 0 ]]; then
-                echi -e "$INFO_MESSAGE If you want to see the status of a specific jail, add the jail name at the end [!]" 
+                echo -e "$INFO_MESSAGE If you want to see the status of a specific jail, add the jail name at the end [!]" 
             fi
             sudo fail2ban-client status $1;;
 
@@ -219,16 +280,16 @@ while [[ "$#" -gt 0 ]]; do
             last_arg "$@"
             open_port "$1";;
 
-         -c|--connect)
+        -c|--connect)
             shift
             last_arg "$@"
             sudo ss -tunap | grep ESTAB;;
 
-
+        
     ##------not working-------#
         --git)
             shift
-            git $@;;
+            git_aut $@;;
         
         --BLOCK)
             last_arg
