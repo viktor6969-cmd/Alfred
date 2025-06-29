@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ERROR_MESSAGE="\e[31m[-]ERROR\e[0m"
-SUCCESS_MESSAGE="\e[32m[+]DONE\e[0m"
-INFO_MESSAGE="\e[33m[!]"
+SUCSESS_MASSAGE="\e[32m[+]DONE\e[0m"
+INFO_MASSAGE="\e[33m[!]"
 #----------------------Functions-------------------------#
 
 # Print help
@@ -96,16 +96,17 @@ backup_save() {
 
     if [[ -d "$SRC_DIR" ]]; then
         sudo tar -czf "$DEST_FILE.tar.gz" -C /etc "$SERVICE"
-        echo -e "$SUCCESS_MESSAGE Backed up $SERVICE to $DEST_FILE.tar.gz"
+        echo -e "$SUCSESS_MASSAGE Backed up $SERVICE to $DEST_FILE.tar.gz"
     else
         echo -e "$ERROR_MESSAGE: $SRC_DIR doesn't exist. Skipping."
     fi
 }
 
+
 # IP validation
 is_valid_ip() {
     if [[ -n $1 ]]; then
-        echo -e "$ERROR_MESSAGE: You must enter the ip, use the -h option"
+        echo -e "$ERROR_MASSAGE: You must enter the ip, use the -h option"
     fi
 
     local ip="$1"
@@ -134,13 +135,13 @@ find_ip_jail(){
     FOUND=0
     for jail in $(sudo fail2ban-client status | grep "Jail list" | cut -d ":" -f2 | tr ',' ' '); do
         if sudo fail2ban-client status "$jail" | grep -q "Banned IP list:.*$1"; then
-        echo -e "$SUCCESS_MESSAGE:The ip:$1 was banned by \"$jail\"";
+        echo -e "$SUCSESS_MASSAGE:The ip:$1 was banned by \"$jail\"";
         FOUND=1
         fi
     done
 
     if [ "$FOUND" -eq 0 ]; then
-        echo "$SUCCESS_MESSAGE:IP $1 is not blocked in any jail."
+        echo "$SUCSESS_MASSAGE:IP $1 is not blocked in any jail."
     fi 
     exit 0
 }
@@ -158,7 +159,7 @@ show_logs(){
         -i|--info)
             shift 
             is_valid_ip "$1"
-            sudo /bin/cat $BLOCKED_IP_INFO_PATH | grep "$1" || echo "$SUCCESS_MESSAGE:$1 wasnn't found in the blocked ip logs";;
+            sudo /bin/cat $BLOCKED_IP_INFO_PATH | grep "$1" || echo "$SUCSESS_MASSAGE:$1 wasnn't found in the blocked ip logs";;
         *)
         print_help "$@";;
     esac
@@ -172,7 +173,7 @@ open_port() {
 
     cleanup() {
         if [[ $CLEANED_UP -eq 0 ]]; then
-            echo -e "\n$INFO_MESSAGE Closing port $PORT..."
+            echo -e "\n$INFO_MASSAGE Closing port $PORT..."
             sudo ufw delete allow $PORT > /dev/null
             CLEANED_UP=1
             exit 0
@@ -181,17 +182,17 @@ open_port() {
 
     trap cleanup SIGINT SIGTERM
 
-    echo -e "$INFO_MESSAGE Temporarily opening port $PORT..."
+    echo -e "$INFO_MASSAGE Temporarily opening port $PORT..."
     sudo ufw allow $PORT > /dev/null
 
-    echo -e "$INFO_MESSAGE Starting listener on port $PORT. Press Ctrl+C to stop...\e[0m"
+    echo -e "$INFO_MASSAGE Starting listener on port $PORT. Press Ctrl+C to stop...\e[0m"
     nc -lvnp $PORT
 
     cleanup  # Will only run if not already cleaned
 }
 
 # Git updates via ssh key
-git_aut(){
+git(){
     case "$1" in
     --con)
         if [ -f ~/.ssh/agent.env ]; then
@@ -267,7 +268,7 @@ while [[ "$#" -gt 0 ]]; do
         -jS|--jailStat)
             shift 
             if [[ $# -eq 0 ]]; then
-                echo -e "$INFO_MESSAGE If you want to see the status of a specific jail, add the jail name at the end [!]" 
+                echi -e "$INFO_MESSAGE If you want to see the status of a specific jail, add the jail name at the end [!]" 
             fi
             sudo fail2ban-client status $1;;
 
@@ -289,7 +290,7 @@ while [[ "$#" -gt 0 ]]; do
     ##------not working-------#
         --git)
             shift
-            git_aut $@;;
+            git $@;;
         
         --BLOCK)
             last_arg
