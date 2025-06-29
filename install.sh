@@ -51,5 +51,5 @@ elif [[ ! -f "$ENV_FILE" ]]; then
 else
     echo -e "$INFO .env file already exists. Skipping."
 fi
-
+ 
 echo -e "$INFO Installation complete."
