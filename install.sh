@@ -5,7 +5,7 @@ SCRIPT_NAME="alfred.sh"
 INSTALL_PATH="/usr/local/bin/$APP_NAME"
 ENV_FILE=".env"
 ENV_TEMPLATE=".env.example"
-REQUIRED_CMDS=("bash" "nc" "ufw" "fail2ban")
+REQUIRED_CMDS=("bash" "nc" "ufw" "fail2ban-client")
 
 INFO="\e[33m[!]\e[0m"
 ERROR="\e[31m[-]\e[0m"
@@ -79,6 +79,9 @@ echo -e "$INFO Creating symlink to $SCRIPT_NAME at $INSTALL_PATH"
 SCRIPT_ABS_PATH="$(readlink -f "$SCRIPT_NAME")"
 sudo ln -s "$SCRIPT_ABS_PATH" "$INSTALL_PATH"
 sudo chmod +x "$SCRIPT_ABS_PATH"
+
+# Create Backup folder 
+sudo mkdir -p "$HOME/.backups"
 
 if [[ ! -f "$ENV_FILE" && -f "$ENV_TEMPLATE" ]]; then
     cp "$ENV_TEMPLATE" "$ENV_FILE"
