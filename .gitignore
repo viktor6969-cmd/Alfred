@@ -1,3 +1,3 @@
-# Ignore the .env file 
-*.env
-.env 
+# Ignore real .env, not the example
+.env
+!.env.example
