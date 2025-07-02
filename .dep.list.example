@@ -1,0 +1,4 @@
+# This file is a tamplate for a dependency list that made aoutomaticly on instalation
+fail2ban=
+ufw=
+apache2=

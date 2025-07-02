@@ -3,17 +3,20 @@
 APP_NAME="alfred"
 SCRIPT_NAME="alfred.sh"
 INSTALL_PATH="/usr/local/bin/$APP_NAME"
+
 ENV_FILE=".env"
 ENV_TEMPLATE=".env.example"
-REQUIRED_CMDS=("bash" "nc" "ufw" "fail2ban-client")
+
+CMDS_LIST=".dep.list"
+CMDS_LIST_TAMPLATE=".dep.list.example"
 
 INFO="\e[33m[!]\e[0m"
 ERROR="\e[31m[-]\e[0m"
 
-
+# Remove the soft link, and all the .env .log .bkp .list files 
 remove_function(){
 
-    echo -e "$INFO Removing $APP_NAME..."
+    echo -e "Removing $APP_NAME..."
 
     # Remove symlink if it exists and points to this script
     if [[ -L "$INSTALL_PATH" ]]; then
@@ -29,40 +32,58 @@ remove_function(){
     fi
 
     # Remove auto-generated .env file
-    if [[ -f "$ENV_FILE" && -f "$ENV_TEMPLATE" ]]; then
-        DIFF=$(diff -q "$ENV_FILE" "$ENV_TEMPLATE")
-        if [[ -z "$DIFF" ]]; then
-            rm -f "$ENV_FILE"
-            echo -e "$INFO Auto-created $ENV_FILE removed."
-        else
-            echo -e "$INFO $ENV_FILE was modified. Not deleting."
-        fi
+    if [[ -f "$ENV_FILE" ]]; then
+        rm -f "$ENV_FILE"
+        echo -e "$INFO $ENV_FILE file removed seccessfully"
     fi
 
+    # Remove auto-generated .env file
+    if [[ -f "$CMDS_LIST" ]]; then
+        rm -f "$CMDS_LIST"
+        echo -e "$INFO $CMDS_LIST file removed seccessfully"
+    fi
+    
     echo -e "$INFO Removal complete."
 
 }
 
-# Directory cheack 
-if [ ! -f "$SCRIPT_NAME" ]; then
+# Cheak if all the files need for instalation are availible 
+install_cheack(){
+    if [ ! -f "$SCRIPT_NAME" ]; then
     echo -e "$ERROR Could not find $SCRIPT_NAME in current directory."
     exit 1
-fi
+    fi
+
+    if [ ! -f "$ENV_TAMPLATE" ]; then 
+    echo -e "$ERROR $ENV_TEMPLATE file is missing, please copy/download him from the git repository"
+    exit 1
+    fi
+
+    if [ ! -f "$CMDS_LIST_TAMPLATE" ]; then 
+    echo -e "$ERROR $CMDS_LIST_TAMPLATE file is missing, please copy/download him from the git repository"
+    exit 1
+    fi
+}
+
 
 # Dependencies cheack 
-echo -e "$INFO Checking dependencies..."
-for cmd in "${REQUIRED_CMDS[@]}"; do
-    if ! command -v "$cmd" >/dev/null 2>&1; then
-        echo -e "$ERROR Missing : $cmd"
-        read -p "Would you like to install it? [Y/N]?" choice
-        if [[ "$confirm" =~ ^([yY]|yes|YES|Yes|yep)$ ]]; then
-            sudo apt install $cmd -y
+dependencies_cheack(){
+    while IFS='=' read -r prog config_path || [[ -n "$prog" ]]; do
+    
+    [[ -z "$prog" || "$prog" =~ ^# ]] && continue  # skip empty lines and comments
+
+    if ! command -v "$prog" >/dev/null 2>&1; then
+        echo -e "$ERROR Missing: $prog"
+        read -p "Would you like to install it? [Y/N] " choice
+        if [[ "$choice" =~ ^([yY]|yes|YES|Yes|yep)$ ]]; then
+            sudo apt install "$prog" -y
         else
-            echo -e "$ERROR Missing dependencies, can't proceed with the installation!"
+            echo -e "$ERROR Missing dependencies, can't proceed!"
             exit 1
         fi
     fi
-done
+    done < "$CMDS_LIST_TAMPLATE"
+}
 
 # Double instalation cheack
 if [[ -f "$INSTALL_PATH" ]]; then
