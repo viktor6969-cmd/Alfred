@@ -37,15 +37,18 @@ print_help(){
 # Extracting variables from .env
 env_extract(){
 
-    SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-    if [[ -f "$SCRIPT_DIR/.env" ]]; then
-        export $(grep -v '^#' "$SCRIPT_DIR/.env" | xargs)
+    SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+    ENV_FILE="$SCRIPT_DIR/.env"
+
+    if [[ -f "$ENV_FILE" ]]; then
+    set -a
+    source "$ENV_FILE"
+        set +a
     else
-        echo ".env file not found in $SCRIPT_DIR"
+        echo -e "$ERROR_MASSAGE .env file not found at $ENV_FILE" >&2
         exit 1
     fi
 }
-
 # Cheack for last argument
 last_arg(){
     if [[ "$1" != "${!#}" ]]; then
@@ -191,45 +194,7 @@ open_port() {
     cleanup  # Will only run if not already cleaned
 }
 
-# Git updates via ssh key
-git(){
-    case "$1" in
-    --con)
-        if [ -f ~/.ssh/agent.env ]; then
-            source ~/.ssh/agent.env > /dev/null
-        fi
 
-        if ! ssh-add -l >/dev/null 2>&1; then
-            echo "[ ] No valid ssh-agent found, starting a new one..."
-            eval "$(ssh-agent -s)" > /dev/null
-            echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" > ~/.ssh/agent.env
-            echo "export SSH_AGENT_PID=$SSH_AGENT_PID" >> ~/.ssh/agent.env
-            ssh-add ~/.ssh/ssh_key_private > /dev/null 2>&1
-        else
-            echo "[ ] Reusing existing ssh-agent."
-        fi
-
-        GIT_OUTPUT=$(ssh -T git@github.com 2>&1)
-        USERNAME=$(echo "$GIT_OUTPUT" | grep -oP '(?<=Hi ).*?(?=!)')
-
-        if [[ -n $USERNAME ]]; then
-            echo -e "[+] Connected to GitHub as: $USERNAME"
-        else
-            echo -e "[-] Couldn't connect to GitHub:\n$GIT_OUTPUT"
-        fi
-        exit 0;;
-
-    --dis)
-        pkill ssh-agent > /dev/null 2>&1
-        echo "[+] All ssh-agent processes have been killed."
-        exit 0;;
-
-    *)
-        print_help "$@";;
-    esac
-
-
-}
 
 #--------------------Main code-------------------#
 
@@ -302,4 +267,45 @@ while [[ "$#" -gt 0 ]]; do
 done
 exit 0
 
-        
+
+
+
+# Git updates via ssh key
+# git(){
+#     case "$1" in
+#     --con)
+#         if [ -f ~/.ssh/agent.env ]; then
+#             source ~/.ssh/agent.env > /dev/null 
+#         fi
+
+#         if ! ssh-add -l >/dev/null 2>&1; then
+#             echo "[ ] No valid ssh-agent found, starting a new one..."
+#             eval "$(ssh-agent -s)" > /dev/null
+#             echo "export SSH_AUTH_SOCK=$SSH_AUTH_SOCK" > ~/.ssh/agent.env
+#             echo "export SSH_AGENT_PID=$SSH_AGENT_PID" >> ~/.ssh/agent.env
+#             ssh-add ~/.ssh/ssh_key_private > /dev/null 2>&1
+#         else
+#             echo "[ ] Reusing existing ssh-agent."
+#         fi
+
+#         GIT_OUTPUT=$(ssh -T git@github.com 2>&1)
+#         USERNAME=$(echo "$GIT_OUTPUT" | grep -oP '(?<=Hi ).*?(?=!)')
+
+#         if [[ -n $USERNAME ]]; then
+#             echo -e "[+] Connected to GitHub as: $USERNAME"
+#         else
+#             echo -e "[-] Couldn't connect to GitHub:\n$GIT_OUTPUT"
+#         fi
+#         exit 0;;
+
+#     --dis)
+#         pkill ssh-agent > /dev/null 2>&1
+#         echo "[+] All ssh-agent processes have been killed."
+#         exit 0;;
+
+#     *)
+#         print_help "$@";;
+#     esac
+
+
+# }

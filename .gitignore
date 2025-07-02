@@ -1,3 +1,6 @@
 # Ignore real .env, not the example
-.env
+*.log
+*.dep.list
+*.env
+!.dep.list.example
 !.env.example
