@@ -102,21 +102,27 @@ validate_install_files() {
 
 # Check for and optionally install missing dependencies
 check_dependencies() {
-    while IFS='=' read -r prog _ || [[ -n "$prog" ]]; do
-        # Skip comments and empty lines
-        [[ -z "$prog" || "$prog" =~ ^# ]] && continue
+    missing=()
 
-        if ! command -v "$prog" >/dev/null 2>&1; then
-            print_error "Missing: $prog"
-            read -p "Install it now? [y/N]: " choice
-            if [[ "$choice" =~ $YES_REGEX ]]; then
-                install_package "$prog"
-            else
-                print_error "Can't continue without $prog"
-                exit 1
-            fi
-        fi
+    # Make a list of missing dependencies (if exist)
+    while IFS='=' read -r prog _ || [[ -n "$prog" ]]; do
+    [[ -z "$prog" || "$prog" =~ ^# ]] && continue
+    command -v "$prog" >/dev/null 2>&1 || missing+=("$prog")
     done < "$DEPS_TEMPLATE"
+
+    # Install them all if needed 
+    if (( ${#missing[@]} )); then
+        print_error "Missing dependencies: ${missing[*]}"
+        read -p "Install them all now? [y/N]: " confirm < /dev/tty
+        if [[ "$confirm" =~ $YES_REGEX ]]; then
+            for pkg in "${missing[@]}"; do
+            install_package "$pkg"
+            done
+        else
+            print_error "Cannot continue without required packages."
+            exit 1
+        fi
+    fi
 }
 
 # Main installation function

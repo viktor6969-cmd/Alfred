@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ERROR_MESSAGE="\e[31m[-]ERROR\e[0m"
 SUCSESS_MASSAGE="\e[32m[+]DONE\e[0m"
@@ -206,12 +206,8 @@ fi
 
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
-        -h|--help)
-            print_help;;
-
-        -up|--update)
-            sudo apt-get update && sudo apt-get upgrade;;
-
+        -h|--help) print_help;;
+        -up|--update) sudo apt-get update && sudo apt-get upgrade;;
         -f|--find)
             shift 
             find_ip_jail "$@";;
