@@ -1,4 +1,4 @@
 # This file is a tamplate for a dependency list that made aoutomaticly on instalation
-fail2ban=
-ufw=
-apache2=
+fail2ban=/etc/fail2ban
+ufw=/etc/ufw
+apache2=/etc/apache2
