@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
+SCRIPT_PATH="$(readlink "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+
+source "$SCRIPT_DIR/utils.sh"
+
 #============================  Functions  =================================#
 
 
@@ -33,9 +40,7 @@ env_extract(){
 #------------------- Installing --------------------#
 
 # Service instalation (if needed)
-install_service (){
-    [[ command -v curl 
-}
+
 
 #---------------------- VPN ------------------------#
 
@@ -55,52 +60,68 @@ last_arg(){
 
 # Backup function
 backup_function() {
-    if [[ -z "$1" ]]; then 
-        echo -e "$ERROR_MESSAGE Missing argument after --save !"
-        print_help
+    if [[ -z "${1:-}" ]]; then 
+        print_error "Missing argument after --save!"
+        print_help ""
+        return 1
     fi
 
-    TIMESTAMP=$(date +%Y-%m-%d_%H-%M)
+    local TIMESTAMP
+    TIMESTAMP="$(date +%Y-%m-%d_%H-%M)"
 
     if [[ "$1" == "-all" ]]; then 
-        for SERVICE in "${SERVICES_INCLUDED[@]}"; do
-            SRC_DIR="/etc/$SERVICE"
-            DEST_FILE="$BACKUP_FILES_PATH/${SERVICE}_$TIMESTAMP.bkp"
-            backup_save "$SRC_DIR" "$DEST_FILE" "$SERVICE"
-        done
+        [[ ! -f "$DEPS_FILE" ]] && { print_error "$DEPS_FILE not found."; return 1; }
+
+        while IFS='=' read -r prog _ || [[ -n "$prog" ]]; do
+            [[ -z "$prog" || "$prog" =~ ^# ]] && continue
+
+            local src_dir="/etc/$prog"
+            local dest_file="$BACKUP_FILES_PATH/${prog}_$TIMESTAMP.bkp"
+            backup_save "$src_dir" "$dest_file" "$prog"
+
+        done < "$DEPS_FILE"
+
+        print_success "All services backed up."
         exit 0
-    else 
-        while [[ "$#" -gt 0 ]]; do
-            found=0
-            for svc in "${SERVICES_INCLUDED[@]}"; do
-                if [[ "$svc" == "$1" ]]; then
-                    SRC_DIR="/etc/$svc"
-                    DEST_FILE="$BACKUP_FILES_PATH/${svc}_$TIMESTAMP.bkp"
-                    backup_save "$SRC_DIR" "$DEST_FILE" "$svc"
-                    found=1
-                    break
-                fi
-            done
-            if [[ $found -eq 0 ]]; then
-                echo -e "$ERROR_MESSAGE Unknown service: $1"
-            fi
-            shift
-        done
     fi
+
+    # Selective backup
+    while [[ "$#" -gt 0 ]]; do
+        local found=0
+
+        while IFS='=' read -r prog _ || [[ -n "$prog" ]]; do
+            [[ -z "$prog" || "$prog" =~ ^# ]] && continue
+
+            if [[ "$prog" == "$1" ]]; then
+                local src_dir="/etc/$prog"
+                local dest_file="$BACKUP_FILES_PATH/${prog}_$TIMESTAMP.bkp"
+                backup_save "$src_dir" "$dest_file" "$prog"
+                found=1
+                break
+            fi
+        done < "$DEPS_FILE"
+
+        [[ $found -eq 0 ]] && print_error "Unknown service: $1, was skiped"
+        shift
+    done
+
+    print_success "Done saving backup files."
+    exit 0
 }
 
 backup_save() {
-    SRC_DIR="$1"
-    DEST_FILE="$2"
-    SERVICE="$3"
+    local src_dir="$1"
+    local dest_file="$2"
+    local service="$3"
 
-    if [[ -d "$SRC_DIR" ]]; then
-        sudo tar -czf "$DEST_FILE.tar.gz" -C /etc "$SERVICE"
-        echo -e "$SUCSESS_MASSAGE Backed up $SERVICE to $DEST_FILE.tar.gz"
+    if [[ -d "$src_dir" ]]; then
+        sudo tar -czf "${dest_file}.tar.gz" -C /etc "$service"
+        print_success "Backed up $service to ${dest_file}.tar.gz"
     else
-        echo -e "$ERROR_MESSAGE: $SRC_DIR doesn't exist. Skipping."
+        print_error "$src_dir doesn't exist. Skipping."
     fi
 }
+
 
 
 
@@ -175,12 +196,12 @@ open_port() {
 
 #--------------------Main code-------------------#
 
-has_sudo || { print_error "This script requires sudo access."; exit 1; }
+has_sudo
 
 env_extract
 
 if [[ $# -eq 0 ]]; then
-    print_help 
+    print_help ""
 fi
 
 while [[ "$#" -gt 0 ]]; do

@@ -68,7 +68,7 @@ print_help(){
 
 # Veryfy sudo user 
 has_sudo() {
-    sudo -n true 2>/dev/null
+    sudo -n true 2>/dev/null || { print_error "This script requires sudo access."; exit 1; }
 }
 
 #----------------- Input validation ----------------#
