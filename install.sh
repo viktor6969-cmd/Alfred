@@ -84,8 +84,8 @@ check_dependencies() {
 
     # Make a list of missing dependencies (if exist)
     while IFS='=' read -r prog _ || [[ -n "$prog" ]]; do
-    [[ -z "$prog" || "$prog" =~ ^# ]] && continue
-    command -v "$prog" >/dev/null 2>&1 || missing+=("$prog")
+        [[ -z "$prog" || "$prog" =~ ^# ]] && continue
+        command -v "$prog" >/dev/null 2>&1 || missing+=("$prog")
     done < "$DEPS_TEMPLATE"
 
     # Install them all if needed 
