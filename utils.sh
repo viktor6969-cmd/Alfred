@@ -12,9 +12,11 @@ ENV_TEMPLATE=".env.example"
 DEPS_FILE=".dep.list"
 DEPS_TEMPLATE=".dep.list.example"
 
-INFO="\e[33m[!]\e[0m"
-ERROR="\e[31m[-]\e[0m"
-SUCSESS="\e[32m[+]DONE\e[0m"
+BACKUP_FILES_PATH=".backup_alfred"
+
+INFO="\e[33m[!]\e[0m "
+ERROR="\e[31m[-]\e[0m "
+SUCSESS="\e[32m[+]\e[0m "
 YES_REGEX="^([yY]|yes|YES|Yes|yep)$"
 
 

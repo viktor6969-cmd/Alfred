@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -eu pipefail
 
 SCRIPT_PATH="$(readlink "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
@@ -60,7 +60,7 @@ last_arg(){
 
 # Backup function
 backup_function() {
-    if [[ -z "${1:-}" ]]; then 
+    if (( $# == 0 )); then
         print_error "Missing argument after --save!"
         print_help ""
         return 1
@@ -72,15 +72,18 @@ backup_function() {
     if [[ "$1" == "-all" ]]; then 
         [[ ! -f "$DEPS_FILE" ]] && { print_error "$DEPS_FILE not found."; return 1; }
 
+        BACKUP_DIR="$BACKUP_FILES_PATH/bkp_$TIMESTAMP"
+        mkdir -p "$BACKUP_DIR"
+
         while IFS='=' read -r prog _ || [[ -n "$prog" ]]; do
             [[ -z "$prog" || "$prog" =~ ^# ]] && continue
 
             local src_dir="/etc/$prog"
-            local dest_file="$BACKUP_FILES_PATH/${prog}_$TIMESTAMP.bkp"
+
+            local dest_file="$BACKUP_DIR/${prog}.bkp"
             backup_save "$src_dir" "$dest_file" "$prog"
 
         done < "$DEPS_FILE"
-
         print_success "All services backed up."
         exit 0
     fi
@@ -208,14 +211,17 @@ while [[ "$#" -gt 0 ]]; do
     case "$1" in
         -h|--help) print_help;;
         -up|--update) sudo apt-get update && sudo apt-get upgrade;;
-        -f|--find) find_ip_jail "{$@:2}";;
-        -s|--show) show_logs "{$@:2}";;
+        -f|--find) find_ip_jail "${@:2}";;
+        -s|--show) show_logs "${@:2}";;
 
         -b|--ban)
             shift
             if [[ $# -eq 2 ]]; then
                 sudo fail2ban-client set $1 ban $2 
             fi;;
+
+        --save)
+            backup_function "${@:2}";;
 
         -aS|--apacheStat)
             

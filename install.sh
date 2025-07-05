@@ -33,6 +33,7 @@ install_package() {
 
 # Remove symlink, .env, .dep.list and other related files
 remove_alfred() {
+    read "It will remmove all the existing .backup, .env, .dep.list files in the directory, are you sure ?"
     print_info "Removing $APP_NAME..."
 
     # Remove symlink if it exists and points to this script
@@ -118,6 +119,9 @@ install_alfred() {
     # Generate missing config files from templates
     copy_if_missing "$ENV_FILE" "$ENV_TEMPLATE"
     copy_if_missing "$DEPS_FILE" "$DEPS_TEMPLATE"
+
+    # Make a .backup directory if missing 
+    mkdir $INSTALL_PATH/.alfred_backup
 
     print_success "$APP_NAME installation complete."
 }
