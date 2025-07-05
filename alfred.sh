@@ -1,38 +1,17 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-ERROR_MESSAGE="\e[31m[-]ERROR\e[0m"
-SUCSESS_MASSAGE="\e[32m[+]DONE\e[0m"
-INFO_MASSAGE="\e[33m[!]"
-#----------------------Functions-------------------------#
-
-# Print help
-print_help(){
-
-    if [[ -n "$1" ]]; then 
-        echo -e "$ERROR_MESSAGE: DAFuck is $1?"
-    fi
-    echo -e "\e[33m[!] Are you dumb? You created me, how can you forget the flags? Idiot.....\n\e[0mUsage: $0 [options] \nOptions:
-        -h/--help                   : Help
-        -s/--show                   : Show real time ufw logs
-             -l/--List              : Show blocked ips
-             -i/--Info <ip>         : Show info about blocked ip (request log)
-        -f/--find <ip>              : Find the Jail that blocked the ip
-        -b/--ban <jail name> <ip>   : Block ip
-        -u/--unban <ip>             : Unblock ip
-        -c/--connect                : Shows the curent established connections (ESTAB)
-        -up/--update                : Update && upgrade
-        -aS/--apacheStat            : Show Apache status
-        -jS/--jailStat              : Fail2ban jails status
-        -pl/--portListen <port>     : Open a Netcat listener on specefied port
+#============================  Functions  =================================#
 
 
-        */ Still not working /*
-        --BLOCK        : Block the server entirly
-        --git --con    : Connect to git via new ssh agent
-        --git --dis    : Kill all the ssh agents (exept the curent one)"
-        
-    exit 1
+
+#------------------- Security ----------------------#
+
+# Sudo user verification
+has_sudo() {
+    sudo -n true 2>/dev/null
 }
+
+#------------------ File reading -------------------#
 
 # Extracting variables from .env
 env_extract(){
@@ -45,10 +24,28 @@ env_extract(){
     source "$ENV_FILE"
         set +a
     else
-        echo -e "$ERROR_MASSAGE .env file not found at $ENV_FILE" >&2
+        print_error ".env file is missing at $ENV_FILE" >&2
         exit 1
     fi
 }
+
+
+#------------------- Installing --------------------#
+
+# Service instalation (if needed)
+install_service (){
+    [[ command -v curl 
+}
+
+#---------------------- VPN ------------------------#
+
+
+
+
+
+
+
+
 # Cheack for last argument
 last_arg(){
     if [[ "$1" != "${!#}" ]]; then
@@ -106,27 +103,7 @@ backup_save() {
 }
 
 
-# IP validation
-is_valid_ip() {
-    if [[ -n $1 ]]; then
-        echo -e "$ERROR_MASSAGE: You must enter the ip, use the -h option"
-    fi
 
-    local ip="$1"
-    if [[ ! "$ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-        echo -e "$ERROR_MESSAGE: $ip is not a valid IP address (invalid format)"
-        exit 1
-    fi
-
-    # Check each octet is 0–255
-    IFS='.' read -r -a octets <<< "$ip"
-    for octet in "${octets[@]}"; do
-        if ((octet < 0 || octet > 255)); then
-            echo -e "$ERROR_MESSAGE: $ip is not a valid IP address (octet out of range)"
-            exit 1
-        fi
-    done
-}
 
 # Find IP in fail2ban jail
 find_ip_jail(){
@@ -198,6 +175,8 @@ open_port() {
 
 #--------------------Main code-------------------#
 
+has_sudo || { print_error "This script requires sudo access."; exit 1; }
+
 env_extract
 
 if [[ $# -eq 0 ]]; then
@@ -206,19 +185,10 @@ fi
 
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
-        -h|--help)
-            print_help;;
-
-        -up|--update)
-            sudo apt-get update && sudo apt-get upgrade;;
-
-        -f|--find)
-            shift 
-            find_ip_jail "$@";;
-
-        -s|--show)
-            shift
-            show_logs "$@";;
+        -h|--help) print_help;;
+        -up|--update) sudo apt-get update && sudo apt-get upgrade;;
+        -f|--find) find_ip_jail "{$@:2}";;
+        -s|--show) show_logs "{$@:2}";;
 
         -b|--ban)
             shift
@@ -227,20 +197,20 @@ while [[ "$#" -gt 0 ]]; do
             fi;;
 
         -aS|--apacheStat)
-            last_arg "$@"
+            
             sudo systemctl status  apache2;;
 
         -jS|--jailStat)
             shift 
             if [[ $# -eq 0 ]]; then
-                echi -e "$INFO_MESSAGE If you want to see the status of a specific jail, add the jail name at the end [!]" 
+                print_info " If you want to see the status of a specific jail, add the jail name at the end [!]" 
             fi
             sudo fail2ban-client status $1;;
 
-        -pl|--portListen)
+        -l|--listen)
             shift
             if [[ $# -eq 0 ]]; then
-                echo -e "$ERROR_MESSAGE: You must enter the port number!\nUse -h! for fuck say...." 
+                print_error " You must enter the port number!\nUse -h! for fuck say...." 
                 exit 1
             fi
             last_arg "$@"

@@ -1,30 +1,8 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+source "$(dirname "$0")/utils.sh"
 
-APP_NAME="alfred"
-SCRIPT_NAME="alfred.sh"
-INSTALL_PATH="/usr/local/bin/$APP_NAME"
-
-ENV_FILE=".env"
-ENV_TEMPLATE=".env.example"
-
-DEPS_FILE=".dep.list"
-DEPS_TEMPLATE=".dep.list.example"
-
-INFO="\e[33m[!]\e[0m"
-ERROR="\e[31m[-]\e[0m"
-YES_REGEX="^([yY]|yes|YES|Yes|yep)$"
-
-# Utility function to print info messages
-print_info() {
-    echo -e "$INFO $1"
-}
-
-# Utility function to print error messages
-print_error() {
-    echo -e "$ERROR $1"
-}
 
 # Detect system package manager
 detect_package_manager() {
@@ -102,21 +80,27 @@ validate_install_files() {
 
 # Check for and optionally install missing dependencies
 check_dependencies() {
-    while IFS='=' read -r prog _ || [[ -n "$prog" ]]; do
-        # Skip comments and empty lines
-        [[ -z "$prog" || "$prog" =~ ^# ]] && continue
+    missing=()
 
-        if ! command -v "$prog" >/dev/null 2>&1; then
-            print_error "Missing: $prog"
-            read -p "Install it now? [y/N]: " choice
-            if [[ "$choice" =~ $YES_REGEX ]]; then
-                install_package "$prog"
-            else
-                print_error "Can't continue without $prog"
-                exit 1
-            fi
-        fi
+    # Make a list of missing dependencies (if exist)
+    while IFS='=' read -r prog _ || [[ -n "$prog" ]]; do
+    [[ -z "$prog" || "$prog" =~ ^# ]] && continue
+    command -v "$prog" >/dev/null 2>&1 || missing+=("$prog")
     done < "$DEPS_TEMPLATE"
+
+    # Install them all if needed 
+    if (( ${#missing[@]} )); then
+        print_error "Missing dependencies: ${missing[*]}"
+        read -p "Install them all now? [y/N]: " confirm < /dev/tty
+        if [[ "$confirm" =~ $YES_REGEX ]]; then
+            for pkg in "${missing[@]}"; do
+            install_package "$pkg"
+            done
+        else
+            print_error "Cannot continue without required packages."
+            exit 1
+        fi
+    fi
 }
 
 # Main installation function
@@ -135,10 +119,11 @@ install_alfred() {
     copy_if_missing "$ENV_FILE" "$ENV_TEMPLATE"
     copy_if_missing "$DEPS_FILE" "$DEPS_TEMPLATE"
 
-    print_info "$APP_NAME installation complete."
+    print_success "$APP_NAME installation complete."
 }
 
 # === Main execution flow ===
+has_sudo || { print_error "This script requires sudo access."; exit 1; }
 check_existing_install
 validate_install_files
 check_dependencies
