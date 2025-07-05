@@ -1,30 +1,8 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+source "$(dirname "$0")/utils.sh"
 
-APP_NAME="alfred"
-SCRIPT_NAME="alfred.sh"
-INSTALL_PATH="/usr/local/bin/$APP_NAME"
-
-ENV_FILE=".env"
-ENV_TEMPLATE=".env.example"
-
-DEPS_FILE=".dep.list"
-DEPS_TEMPLATE=".dep.list.example"
-
-INFO="\e[33m[!]\e[0m"
-ERROR="\e[31m[-]\e[0m"
-YES_REGEX="^([yY]|yes|YES|Yes|yep)$"
-
-# Utility function to print info messages
-print_info() {
-    echo -e "$INFO $1"
-}
-
-# Utility function to print error messages
-print_error() {
-    echo -e "$ERROR $1"
-}
 
 # Detect system package manager
 detect_package_manager() {
@@ -141,10 +119,11 @@ install_alfred() {
     copy_if_missing "$ENV_FILE" "$ENV_TEMPLATE"
     copy_if_missing "$DEPS_FILE" "$DEPS_TEMPLATE"
 
-    print_info "$APP_NAME installation complete."
+    print_success "$APP_NAME installation complete."
 }
 
 # === Main execution flow ===
+has_sudo || { print_error "This script requires sudo access."; exit 1; }
 check_existing_install
 validate_install_files
 check_dependencies
