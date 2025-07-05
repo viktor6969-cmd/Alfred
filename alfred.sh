@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
+SCRIPT_PATH="$(readlink "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+
+source "$SCRIPT_DIR/utils.sh"
+
 #============================  Functions  =================================#
 
 
@@ -33,9 +40,7 @@ env_extract(){
 #------------------- Installing --------------------#
 
 # Service instalation (if needed)
-install_service (){
-    [[ command -v curl 
-}
+
 
 #---------------------- VPN ------------------------#
 
@@ -175,7 +180,7 @@ open_port() {
 
 #--------------------Main code-------------------#
 
-has_sudo || { print_error "This script requires sudo access."; exit 1; }
+has_sudo
 
 env_extract
 
