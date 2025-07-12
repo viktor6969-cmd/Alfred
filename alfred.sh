@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-set -eu pipefail
+# TO DO:
+# Fix pipefail on missing arguments with empty call
+
+
+set -euo pipefail
 
 SCRIPT_PATH="$(readlink "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
@@ -38,7 +42,7 @@ dep_extract(){
     [[ ! -f "$DEPS_FILE" ]] &&  { print_error "The .dep.list file is missing"; return 1;} 
 
     # Avoid double .dep.list file read 
-    [[ -n "${DEP_MAP["__loaded"]}" ]] && return 0
+    [[ ${DEP_MAP["__loaded"]+x} ]] && return 0
 
     # Make a global hash map of the supported services 
     declare -Ag DEP_MAP
@@ -233,7 +237,7 @@ open_port() {
 
 #--------------------Main code-------------------#
 
-has_sudo || {print_error "You must be root to run this script"; exit 1;}
+has_sudo || { print_error "You must be root to run this script"; exit 1;}
 
 env_extract
 
@@ -253,7 +257,7 @@ while [[ "$#" -gt 0 ]]; do
             backup_function "${@:2}";;
 
         --list)
-            last_arg "$@" || list_services;;
+            list_services;;
 
 
 #---------------------Working----------------------------#
