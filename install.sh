@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# To do:
+# Fix the fail2ban chack in instalation
+# Fix the confarmetion massage on removeal 
+# Ask if there a need to remove beckup files 
+
 set -euo pipefail
 source "$(dirname "$0")/utils.sh"
 
@@ -33,8 +38,7 @@ install_package() {
 
 # Remove symlink, .env, .dep.list and other related files
 remove_alfred() {
-    read -p "It will remmove all the existing .backup, .env, .dep.list files in the directory, are you sure ?" confirm
-    [[ "$confirm" =~ $YES_REGEX ]] && remove_alfred
+    
     print_info "Removing $APP_NAME..."
 
     # Remove symlink if it exists and points to this script
@@ -44,6 +48,12 @@ remove_alfred() {
     else
         print_info "No matching symlink found at $INSTALL_PATH. Skipping."
     fi
+
+    # See if there any backups, and ask the user if he wis to remove them
+    if [[ -d ".backups"]]; then 
+        read -p "Do you wish to remove all the backup files from the system? (.backups folder)? [y/n]: " confirm
+        [[ "$confirm" =~ $YES_REGEX ]] && { sudo rm -r .backups; print_info "All the backups has been removed"; }
+    fi 
 
     # Remove generated config files
     for f in "$ENV_FILE" "$DEPS_FILE"; do
@@ -67,7 +77,7 @@ copy_if_missing() {
 check_existing_install() {
     if [[ -f "$INSTALL_PATH" ]]; then
         print_info "$APP_NAME already installed at $INSTALL_PATH"
-        read -p "Remove it first? [y/N]: " confirm
+        read -p "Do you wish to remove curent instalation? (including .env .dep.list etc) [y/n]: " confirm
         [[ "$confirm" =~ $YES_REGEX ]] && remove_alfred
         exit 0
     fi
@@ -84,24 +94,21 @@ validate_install_files() {
 check_dependencies() {
     missing=()
 
-    # Make a list of missing dependencies (if exist)
-    while IFS='=' read -r prog _ || [[ -n "$prog" ]]; do
+    while IFS=':' read -r prog binary _ || [[ -n "$prog" ]]; do
         [[ -z "$prog" || "$prog" =~ ^# ]] && continue
-        command -v "$prog" >/dev/null 2>&1 || missing+=("$prog")
+        [[ -z "$binary" ]] && binary="$prog"
+
+        command -v "$binary" >/dev/null 2>&1 || missing+=("$prog")
     done < "$DEPS_TEMPLATE"
 
-    # Install them all if needed 
     if (( ${#missing[@]} )); then
         print_error "Missing dependencies: ${missing[*]}"
         read -p "Install them all now? [y/N]: " confirm < /dev/tty
-        if [[ "$confirm" =~ $YES_REGEX ]]; then
-            for pkg in "${missing[@]}"; do
+        [[ "$confirm" =~ $YES_REGEX ]] || { print_error "Cannot continue."; exit 1; }
+
+        for pkg in "${missing[@]}"; do
             install_package "$pkg"
-            done
-        else
-            print_error "Cannot continue without required packages."
-            exit 1
-        fi
+        done
     fi
 }
 
