@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -eu pipefail
 
 SCRIPT_PATH="$(readlink "$0")"
 SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
@@ -18,6 +18,7 @@ has_sudo() {
     sudo -n true 2>/dev/null
 }
 
+
 #------------------ File reading -------------------#
 
 # Extracting variables from .env
@@ -26,43 +27,45 @@ env_extract(){
     SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
     ENV_FILE="$SCRIPT_DIR/.env"
 
-    if [[ -f "$ENV_FILE" ]]; then
-    set -a
-    source "$ENV_FILE"
-        set +a
-    else
-        print_error ".env file is missing at $ENV_FILE" >&2
-        exit 1
-    fi
+    # Export every variable from the .env file 
+    [[ -f "$ENV_FILE" ]] && { set -a; source "$ENV_FILE"; set + a;} || return 1
 }
 
+# Extract the dependancyes list, into a hash map name:conf_path
+dep_extract(){
 
+    # Make sure that .dep.list exist in the folder 
+    [[ ! -f "$DEPS_FILE" ]] &&  { print_error "The .dep.list file is missing"; return 1;} 
+
+    # Avoid double .dep.list file read 
+    [[ -n "${DEP_MAP["__loaded"]}" ]] && return 0
+
+    # Make a global hash map of the supported services 
+    declare -Ag DEP_MAP
+
+    while IFS='=' read -r prog path || [[ -n "$prog" ]]; do
+        [[ -z "$prog" || "$prog" =~ ^# ]] && continue
+
+        # fallback if path is empty
+        [[ -z "$path" ]] && path="/etc/$prog"
+
+        DEP_MAP["$prog"]="$path"
+    done < "$DEPS_FILE"
+
+}
 #------------------- Installing --------------------#
 
 # Service instalation (if needed)
 
 
-#---------------------- VPN ------------------------#
-
-
-
-
-
-
-
-
-# Cheack for last argument
-last_arg(){
-    if [[ "$1" != "${!#}" ]]; then
-        print_help "$1"
-    fi
-}
-
-# Backup function
+#---------------Backup functions--------------------#
 backup_function() {
-    if [[ -z "${1:-}" ]]; then 
+
+    dep_extract
+
+    if (( $# == 0 )); then
         print_error "Missing argument after --save!"
-        print_help ""
+        print_info "Try alfred --help"
         return 1
     fi
 
@@ -72,26 +75,29 @@ backup_function() {
     if [[ "$1" == "-all" ]]; then 
         [[ ! -f "$DEPS_FILE" ]] && { print_error "$DEPS_FILE not found."; return 1; }
 
+        BACKUP_DIR="$BACKUP_FILES_PATH/bkp_$TIMESTAMP"
+        mkdir -p "$BACKUP_DIR"
+
         while IFS='=' read -r prog _ || [[ -n "$prog" ]]; do
             [[ -z "$prog" || "$prog" =~ ^# ]] && continue
 
             local src_dir="/etc/$prog"
-            local dest_file="$BACKUP_FILES_PATH/${prog}_$TIMESTAMP.bkp"
+
+            local dest_file="$BACKUP_DIR/${prog}.bkp"
             backup_save "$src_dir" "$dest_file" "$prog"
 
         done < "$DEPS_FILE"
-
         print_success "All services backed up."
-        exit 0
+        return 0
     fi
 
     # Selective backup
+    local found=0
     while [[ "$#" -gt 0 ]]; do
-        local found=0
 
         while IFS='=' read -r prog _ || [[ -n "$prog" ]]; do
-            [[ -z "$prog" || "$prog" =~ ^# ]] && continue
 
+            [[ -z "$prog" || "$prog" =~ ^# ]] && continue
             if [[ "$prog" == "$1" ]]; then
                 local src_dir="/etc/$prog"
                 local dest_file="$BACKUP_FILES_PATH/${prog}_$TIMESTAMP.bkp"
@@ -106,10 +112,11 @@ backup_function() {
     done
 
     print_success "Done saving backup files."
-    exit 0
+    return 0
 }
 
 backup_save() {
+
     local src_dir="$1"
     local dest_file="$2"
     local service="$3"
@@ -120,12 +127,42 @@ backup_save() {
     else
         print_error "$src_dir doesn't exist. Skipping."
     fi
+
+    return 0
+}
+
+list_services(){
+
+    dep_extract
+
+    echo -e "\nSupported programs:"
+    for prog in "${!DEP_MAP[@]}"; do
+        [[ "$prog" == "__loaded" ]] && continue
+        printf "  - %s => %s\n" "$prog" "${DEP_MAP[$prog]}"
+    done
+
+    return 0
+}
+
+
+#---------------------- VPN ------------------------#
+
+
+#-------------------Functionality-------------------#
+
+# Cheack for last argument
+last_arg(){
+    if [[ -z "${2:-}" ]]; then
+        print_error "Missing arguments after $1"
+        print_info "Try alfred --help"
+        exit 1
+    fi
+    return 0
 }
 
 
 
-
-
+#-----------------Not working yet------------------#
 # Find IP in fail2ban jail
 find_ip_jail(){
     if [[ $# -eq 0 ]]; then
@@ -196,7 +233,7 @@ open_port() {
 
 #--------------------Main code-------------------#
 
-has_sudo
+has_sudo || {print_error "You must be root to run this script"; exit 1;}
 
 env_extract
 
@@ -206,16 +243,30 @@ fi
 
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
-        -h|--help) print_help;;
-        -up|--update) sudo apt-get update && sudo apt-get upgrade;;
-        -f|--find) find_ip_jail "{$@:2}";;
-        -s|--show) show_logs "{$@:2}";;
+        -h|--help) 
+            print_help;;
+
+        -up|--update) 
+            sudo apt-get update && sudo apt-get upgrade;;
+
+        --save)
+            backup_function "${@:2}";;
+
+        --list)
+            last_arg "$@" || list_services;;
+
+
+#---------------------Working----------------------------#
+        -f|--find) find_ip_jail "${@:2}";;
+        -s|--show) show_logs "${@:2}";;
 
         -b|--ban)
             shift
             if [[ $# -eq 2 ]]; then
                 sudo fail2ban-client set $1 ban $2 
             fi;;
+
+        
 
         -aS|--apacheStat)
             
