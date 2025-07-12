@@ -33,7 +33,8 @@ install_package() {
 
 # Remove symlink, .env, .dep.list and other related files
 remove_alfred() {
-    read "It will remmove all the existing .backup, .env, .dep.list files in the directory, are you sure ?"
+    read -p "It will remmove all the existing .backup, .env, .dep.list files in the directory, are you sure ?" confirm
+    [[ "$confirm" =~ $YES_REGEX ]] && remove_alfred
     print_info "Removing $APP_NAME..."
 
     # Remove symlink if it exists and points to this script
@@ -131,10 +132,6 @@ has_sudo || { print_error "This script requires sudo access."; exit 1; }
 check_existing_install
 validate_install_files
 check_dependencies
-install_alfred
-
-exit 0
-
 install_alfred
 
 exit 0
