@@ -100,12 +100,12 @@ check_dependencies() {
         [[ -z "$binary" ]] && binary="$prog"
 
         if ! command -v "$binary" &>/dev/null; then
-            echo "[-] Missing: $prog ($binary)"
+            print_error "Missing: $prog ($binary)"
             missing+=("$prog")
         fi
 
         if [[ -n "$conf" && ! -e "$conf" ]]; then
-            echo "[-] Config missing for $prog: $conf"
+            print_error  "Config missing for $prog: $conf"
         fi
     done < "$DEPS_TEMPLATE"
 
