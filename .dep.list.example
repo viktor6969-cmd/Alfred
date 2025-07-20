@@ -2,5 +2,5 @@
 # <Proggram_name>:<binary_name>:<conf.file_path>
 
 fail2ban:fail2ban-client:/etc/fail2ban
-apache2:apache2ctl:/etc/apache2
+apache2:apache2:/etc/apache2
 ufw:ufw:/etc/ufw

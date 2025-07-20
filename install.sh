@@ -46,7 +46,7 @@ remove_alfred() {
         sudo rm -f "$INSTALL_PATH"
         print_info "Symlink removed from $INSTALL_PATH"
     else
-        print_info "No matching symlink found at $INSTALL_PATH. Skipping."
+        print_info "No matching symlink found at $INSTALL_PATH - Skipping."
     fi
 
     # See if there any backups, and ask the user if he wis to remove them
@@ -70,7 +70,7 @@ copy_if_missing() {
     [[ -f "$template" ]] || { print_error "$template not found."; exit 1; }
 
     cp "$template" "$target"
-    print_info "Created $target from template. Please review it."
+    print_success "Created $target from template. Please review it."
 }
 
 # Prevent double installation if the symlink already exists
@@ -94,7 +94,7 @@ validate_install_files() {
 # Check for and optionally install missing dependencies
 check_dependencies() {
     missing=()
-
+    sed -i 's/\r$//' "$DEPS_TEMPLATE"
     while IFS=':' read -r prog binary conf; do
         [[ -z "$prog" || "$prog" =~ ^# ]] && continue
         [[ -z "$binary" ]] && binary="$prog"
@@ -123,22 +123,22 @@ check_dependencies() {
 
 # Main installation function
 install_alfred() {
-    print_info "Creating symlink to $SCRIPT_NAME at $INSTALL_PATH"
+    print_success "Creating symlink to $SCRIPT_NAME at $INSTALL_PATH"
     local script_abs
     script_abs="$(readlink -f "$SCRIPT_NAME")"
     sudo ln -sf "$script_abs" "$INSTALL_PATH"
     sudo chmod +x "$script_abs"
 
     # Ensure .backups directory exists
-    [[ -d "$HOME/.backups" ]] || sudo mkdir -p "$HOME/.backups"
-    print_info ".backups folder ready"
+    [[ -d "$SCRIPT_DIR/.backups" ]] || sudo mkdir -p "$SCRIPT_DIR/.backups"
+    print_success ".backups folder ready"
 
     # Generate missing config files from templates
     copy_if_missing "$ENV_FILE" "$ENV_TEMPLATE"
     copy_if_missing "$DEPS_FILE" "$DEPS_TEMPLATE"
 
     # Make a .backup directory if missing 
-    mkdir $INSTALL_PATH/.alfred_backup
+    mkdir $SCRIPT_DIR/.alfred_backup
 
     print_success "$APP_NAME installation complete."
 }

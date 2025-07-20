@@ -2,17 +2,18 @@
 
 #=============== Global Vars ======================#
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 APP_NAME="alfred"
-SCRIPT_NAME="alfred.sh"
+SCRIPT_NAME="$SCRIPT_DIR/alfred.sh"
 INSTALL_PATH="/usr/local/bin/$APP_NAME"
 
-ENV_FILE=".env"
-ENV_TEMPLATE=".env.example"
 
-DEPS_FILE=".dep.list"
-DEPS_TEMPLATE=".dep.list.example"
+ENV_FILE="$SCRIPT_DIR/.env"
+ENV_TEMPLATE="$SCRIPT_DIR/.env.example"
 
-BACKUP_FILES_PATH=".backup_alfred"
+DEPS_FILE="$SCRIPT_DIR/.dep.list"
+DEPS_TEMPLATE="$SCRIPT_DIR/.dep.list.example"
 
 INFO="\e[33m[!]\e[0m "
 ERROR="\e[31m[-]\e[0m "
@@ -24,17 +25,17 @@ YES_REGEX="^([yY]|yes|YES|Yes|yep)$"
 
 # Utility function to print info messages
 print_info() {
-    echo -e "$INFO $1 "
+    echo -e "$INFO$1 "
 }
 
 # Utility function to print error messages
 print_error() {
-    echo -e "$ERROR $1 "
+    echo -e "$ERROR$1 "
 }
 
 # Utility function to print error messages
 print_success() {
-    echo -e "$SUCSESS $1 "
+    echo -e "$SUCSESS$1 "
 }
 
 # Print help
