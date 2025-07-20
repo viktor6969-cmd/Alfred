@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# To do:
-# ! Fix the fail2ban chack in instalation
+# To do: no bugs 
+# + Fix the fail2ban chack in instalation
 # + Fix the confarmetion massage on removeal 
 # + Ask if there a need to remove beckup files 
 
@@ -70,7 +70,7 @@ copy_if_missing() {
     [[ -f "$template" ]] || { print_error "$template not found."; exit 1; }
 
     cp "$template" "$target"
-    print_success "Created $target from template. Please review it."
+    print_info "Created $target from template. Please review it."
 }
 
 # Prevent double installation if the symlink already exists
@@ -136,9 +136,6 @@ install_alfred() {
     # Generate missing config files from templates
     copy_if_missing "$ENV_FILE" "$ENV_TEMPLATE"
     copy_if_missing "$DEPS_FILE" "$DEPS_TEMPLATE"
-
-    # Make a .backup directory if missing 
-    mkdir $SCRIPT_DIR/.alfred_backup
 
     print_success "$APP_NAME installation complete."
 }

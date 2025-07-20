@@ -1,6 +1,7 @@
 # This file is a tamplate for a dependency list that made aoutomaticly on instalation:
-# <Proggram_name>:<binary_name>:<conf.file_path>
+# <Proggram_name>:<binary_name>:<conf.file_path> 
+# If he proggram name and the binary are the same, you can live an empty space lie that: apache2::/etc/apache2
 
 fail2ban:fail2ban-client:/etc/fail2ban
-apache2:apache2:/etc/apache2
-ufw:ufw:/etc/ufw
+apache2::/etc/apache2
+ufw::/etc/ufw
