@@ -50,7 +50,7 @@ remove_alfred() {
     fi
 
     # See if there any backups, and ask the user if he wis to remove them
-    if [[ -d ".backups"]]; then 
+    if [[ -d ".backups" ]]; then 
         read -p "Do you wish to remove all the backup files from the system? (.backups folder)? [y/n]: " confirm
         [[ "$confirm" =~ $YES_REGEX ]] && { sudo rm -r .backups; print_info "All the backups has been removed"; }
     fi 
@@ -95,15 +95,16 @@ validate_install_files() {
 check_dependencies() {
     missing=()
 
-    while IFS='=' read -r prog conf; do
+    while IFS=':' read -r prog binary conf; do
         [[ -z "$prog" || "$prog" =~ ^# ]] && continue
+        [[ -z "$binary" ]] && binary="$prog"
 
-        if ! command -v "$prog" &>/dev/null; then
-            echo "[-] Missing: $prog"
+        if ! command -v "$binary" &>/dev/null; then
+            echo "[-] Missing: $prog ($binary)"
             missing+=("$prog")
         fi
 
-        if [[ -n "$conf" && ! -f "$conf" ]]; then
+        if [[ -n "$conf" && ! -e "$conf" ]]; then
             echo "[-] Config missing for $prog: $conf"
         fi
     done < "$DEPS_TEMPLATE"
