@@ -1,20 +1,13 @@
 #!/usr/bin/env bash
 
 # TO DO:
-# Fix __loaded on save function
 # Fix pipefail on missing arguments with empty call
 
 
 set -euo pipefail
-
-SCRIPT_PATH="$(readlink "$0")"
-SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
-
 source "$SCRIPT_DIR/utils.sh"
 
 #============================  Functions  =================================#
-
-
 
 #------------------- Security ----------------------#
 
@@ -81,7 +74,7 @@ backup_function() {
     if [[ "$1" == "-all" ]]; then 
         [[ ! -f "$DEPS_FILE" ]] && { print_error "$DEPS_FILE not found."; return 1; }
 
-        BACKUP_DIR="$BACKUP_FILES_PATH/bkp_$TIMESTAMP"
+        BACKUP_DIR="$BACKUP_FILES/bkp_$TIMESTAMP"
         mkdir -p "$BACKUP_DIR"
 
         while IFS='=' read -r prog _ || [[ -n "$prog" ]]; do
@@ -172,14 +165,14 @@ last_arg(){
 # Find IP in fail2ban jail
 find_ip_jail(){
     if [[ $# -eq 0 ]]; then
-        echo -e "$ERROR_MESSAGE:You must enter the ip too, use the -h option idiot...."  
+        print_error "You must enter the ip too, use the -h option idiot...."  
     fi 
 
     is_valid_ip "$1"
     FOUND=0
     for jail in $(sudo fail2ban-client status | grep "Jail list" | cut -d ":" -f2 | tr ',' ' '); do
         if sudo fail2ban-client status "$jail" | grep -q "Banned IP list:.*$1"; then
-        echo -e "$SUCSESS_MASSAGE:The ip:$1 was banned by \"$jail\"";
+        print_success "Ip:$1 was banned by \"$jail\"";
         FOUND=1
         fi
     done
@@ -244,7 +237,7 @@ has_sudo || { print_error "You must be root to run this script"; exit 1;}
 env_extract
 
 if [[ $# -eq 0 ]]; then
-    print_help ""
+    print_error "No arguments were found, try alfred -h"
 fi
 
 while [[ "$#" -gt 0 ]]; do

@@ -44,8 +44,13 @@ print_help(){
     if [[ -n "$1" ]]; then 
         print_error "DAFuck is $1?"
     fi
-    echo -e "\e[33m[!] Are you dumb? You created me, how can you forget the flags? Idiot.....\n\e[0mUsage: $0 [options] \nOptions:
+    echo -e "$INFO Usage: $0 [options] \nOptions:
         -h/--help                   : Help
+        --list                      : List the supported services from .dep.list
+        --save <service name>       : Save the curent comfiguration of this service/s
+        -up/--update                : Update && upgrade
+
+
         -s/--show                   : Show real time ufw logs
              -l/--List              : Show blocked ips
              -i/--Info <ip>         : Show info about blocked ip (request log)
@@ -53,7 +58,6 @@ print_help(){
         -b/--ban <jail name> <ip>   : Block ip
         -u/--unban <ip>             : Unblock ip
         -c/--connect                : Shows the curent established connections (ESTAB)
-        -up/--update                : Update && upgrade
         -aS/--apacheStat            : Show Apache status
         -jS/--jailStat              : Fail2ban jails status
         -pl/--portListen <port>     : Open a Netcat listener on specefied port
