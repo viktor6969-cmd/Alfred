@@ -5,6 +5,10 @@
 
 
 set -euo pipefail
+
+SCRIPT_PATH="$(readlink "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+
 source "$SCRIPT_DIR/utils.sh"
 
 #============================  Functions  =================================#
@@ -65,7 +69,7 @@ backup_function() {
     if (( $# == 0 )); then
         print_error "Missing argument after --save!"
         print_info "Try alfred --help"
-        return 1
+        exit 1
     fi
 
     local TIMESTAMP
@@ -73,45 +77,39 @@ backup_function() {
 
     if [[ "$1" == "-all" ]]; then 
         [[ ! -f "$DEPS_FILE" ]] && { print_error "$DEPS_FILE not found."; return 1; }
+        [[ -d "$BACKUP_FILES" ]] || sudo mkdir -p "$BACKUP_FILES"
 
         BACKUP_DIR="$BACKUP_FILES/bkp_$TIMESTAMP"
-        mkdir -p "$BACKUP_DIR"
+        sudo mkdir -p "$BACKUP_DIR"
 
-        while IFS='=' read -r prog _ || [[ -n "$prog" ]]; do
-            [[ -z "$prog" || "$prog" =~ ^# ]] && continue
-
-            local src_dir="/etc/$prog"
-
+        for prog in "${!DEP_MAP[@]}"; do
+            [[ "$prog" =~ _ ]] && continue
+            local path="${DEP_MAP["${prog}_path"]}"
             local dest_file="$BACKUP_DIR/${prog}.bkp"
-            backup_save "$src_dir" "$dest_file" "$prog"
+            backup_save "$path" "$dest_file" "$prog"
+        done
 
-        done < "$DEPS_FILE"
         print_success "All services backed up."
         return 0
     fi
 
-    # Selective backup
-    local found=0
+     # Selective backup
     while [[ "$#" -gt 0 ]]; do
+        local prog="$1"
+        local path="${DEP_MAP["${prog}_path"]}"
 
-        while IFS='=' read -r prog _ || [[ -n "$prog" ]]; do
+        if [[ -n "$path" ]]; then
+            local dest_file="$BACKUP_FILES/${prog}_$TIMESTAMP.bkp"
+            backup_save "$path" "$dest_file" "$prog"
+        else
+            print_error "Unknown service: $prog, was skipped"
+        fi
 
-            [[ -z "$prog" || "$prog" =~ ^# ]] && continue
-            if [[ "$prog" == "$1" ]]; then
-                local src_dir="/etc/$prog"
-                local dest_file="$BACKUP_FILES_PATH/${prog}_$TIMESTAMP.bkp"
-                backup_save "$src_dir" "$dest_file" "$prog"
-                found=1
-                break
-            fi
-        done < "$DEPS_FILE"
-
-        [[ $found -eq 0 ]] && print_error "Unknown service: $1, was skiped"
         shift
     done
 
     print_success "Done saving backup files."
-    return 0
+    exit 0
 }
 
 backup_save() {

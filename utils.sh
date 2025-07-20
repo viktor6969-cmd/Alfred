@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_NAME="alfred"
 SCRIPT_NAME="$SCRIPT_DIR/alfred.sh"
 INSTALL_PATH="/usr/local/bin/$APP_NAME"
-
+BACKUP_FILES="$SCRIPT_DIR/.backups"
 
 ENV_FILE="$SCRIPT_DIR/.env"
 ENV_TEMPLATE="$SCRIPT_DIR/.env.example"
