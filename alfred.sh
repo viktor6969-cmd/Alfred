@@ -35,7 +35,7 @@ env_extract(){
     [[ -f "$ENV_FILE" ]] && { set -a; source "$ENV_FILE"; set + a;} || return 1
 }
 
-# Extract the dependancyes list, into a hash map name:conf_path
+# Extract the dependancyes list, into a hash map name:DEP_MAP
 dep_extract(){
 
     # Make sure that .dep.list exist in the folder 

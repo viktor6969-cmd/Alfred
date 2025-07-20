@@ -81,6 +81,7 @@ check_existing_install() {
         [[ "$confirm" =~ $YES_REGEX ]] && remove_alfred
         exit 0
     fi
+    return 0
 }
 
 # Ensure all required files for installation exist
@@ -94,11 +95,17 @@ validate_install_files() {
 check_dependencies() {
     missing=()
 
-    while IFS=':' read -r prog binary _ || [[ -n "$prog" ]]; do
+    while IFS='=' read -r prog conf; do
         [[ -z "$prog" || "$prog" =~ ^# ]] && continue
-        [[ -z "$binary" ]] && binary="$prog"
 
-        command -v "$binary" >/dev/null 2>&1 || missing+=("$prog")
+        if ! command -v "$prog" &>/dev/null; then
+            echo "[-] Missing: $prog"
+            missing+=("$prog")
+        fi
+
+        if [[ -n "$conf" && ! -f "$conf" ]]; then
+            echo "[-] Config missing for $prog: $conf"
+        fi
     done < "$DEPS_TEMPLATE"
 
     if (( ${#missing[@]} )); then
@@ -111,6 +118,7 @@ check_dependencies() {
         done
     fi
 }
+
 
 # Main installation function
 install_alfred() {
