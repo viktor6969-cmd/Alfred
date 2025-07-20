@@ -131,7 +131,6 @@ install_alfred() {
 
     # Ensure .backups directory exists
     [[ -d "$SCRIPT_DIR/.backups" ]] || sudo mkdir -p "$SCRIPT_DIR/.backups"
-    print_success ".backups folder ready"
 
     # Generate missing config files from templates
     copy_if_missing "$ENV_FILE" "$ENV_TEMPLATE"
