@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # To do:
-# Fix the fail2ban chack in instalation
-# Fix the confarmetion massage on removeal 
-# Ask if there a need to remove beckup files 
+# ! Fix the fail2ban chack in instalation
+# + Fix the confarmetion massage on removeal 
+# + Ask if there a need to remove beckup files 
 
 set -euo pipefail
 source "$(dirname "$0")/utils.sh"
