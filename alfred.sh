@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # TO DO:
+# Fix __loaded on save function
 # Fix pipefail on missing arguments with empty call
 
 
@@ -38,17 +39,18 @@ env_extract(){
 # Extract the dependancyes list, into a hash map name:DEP_MAP
 dep_extract(){
 
+    # Make a global hash map of the supported services 
+    declare -Ag DEP_MAP
+
     # Make sure that .dep.list exist in the folder 
     [[ ! -f "$DEPS_FILE" ]] &&  { print_error "The .dep.list file is missing"; return 1;} 
 
     # Avoid double .dep.list file read 
     [[ ${DEP_MAP["__loaded"]+x} ]] && return 0
 
-    # Make a global hash map of the supported services 
-    declare -Ag DEP_MAP
-
-    while IFS='=' read -r prog path || [[ -n "$prog" ]]; do
+    while IFS=':' read -r prog binary path; do
         [[ -z "$prog" || "$prog" =~ ^# ]] && continue
+        [[ -z "$binary" ]] && binary="$prog"
 
         # fallback if path is empty
         [[ -z "$path" ]] && path="/etc/$prog"
