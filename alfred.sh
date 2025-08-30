@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # TO DO:
-# Fix pipefail on missing arguments with empty call
+# Local path with the .beckup folder on line 99, of the save function 
 
 
 set -euo pipefail
@@ -84,7 +84,7 @@ backup_function() {
 
         for prog in "${!DEP_MAP[@]}"; do
             [[ "$prog" =~ _ ]] && continue
-            local path="${DEP_MAP["${prog}_path"]}"
+            local path="${DEP_MAP["$prog"]}"
             local dest_file="$BACKUP_DIR/${prog}.bkp"
             backup_save "$path" "$dest_file" "$prog"
         done
@@ -96,7 +96,7 @@ backup_function() {
      # Selective backup
     while [[ "$#" -gt 0 ]]; do
         local prog="$1"
-        local path="${DEP_MAP["${prog}_path"]}"
+        local path="${DEP_MAP["$prog"]}"
 
         if [[ -n "$path" ]]; then
             local dest_file="$BACKUP_FILES/${prog}_$TIMESTAMP.bkp"
